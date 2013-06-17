@@ -1,18 +1,29 @@
-#define ECMWF_FRV
 #define DEBUG
 
 module getm_meteo
 
-   real, public	:: www,L,rho_air,qs,qa,ea,cd_heat,cd_mom
-   real,public,parameter :: cpa=1008.,KELVIN=273.15,emiss=0.97,bolz=5.67e-8
+  real, public	:: www,L,rho_air,qs,qa,ea,cd_heat,cd_mom
+  real,public,parameter :: cpa=1008.,KELVIN=273.15,emiss=0.97,bolz=5.67e-8
 
+  !intel fortran special numbers (NaN, Inf...)
+  !INTEGER(4), PARAMETER :: FOR_K_FP_SNAN       = '00000000'X
+  !INTEGER(4), PARAMETER :: FOR_K_FP_QNAN       = '00000001'X
+  INTEGER(4), PARAMETER :: FOR_K_FP_POS_INF    = '00000002'X
+  INTEGER(4), PARAMETER :: FOR_K_FP_NEG_INF    = '00000003'X
+  !INTEGER(4), PARAMETER :: FOR_K_FP_POS_NORM   = '00000004'X
+  !INTEGER(4), PARAMETER :: FOR_K_FP_NEG_NORM   = '00000005'X
+  !INTEGER(4), PARAMETER :: FOR_K_FP_POS_DENORM = '00000006'X
+  !INTEGER(4), PARAMETER :: FOR_K_FP_NEG_DENORM = '00000007'X
+  !INTEGER(4), PARAMETER :: FOR_K_FP_POS_ZERO   = '00000008'X
+  !INTEGER(4), PARAMETER :: FOR_K_FP_NEG_ZERO   = '00000009'X
 
 contains
 
-! subroutine compute_fluxes(windmult,Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,tausx,tausy,fles,windvlucht,evap)
 subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,tausx,tausy,evapoo)
   use date
+  use TIMCOM_GENERAL,ONLY:heattype
   implicit none
+
 #include "./physic.h"
   real, intent(in) :: Tmjd
   real, dimension(:), intent(in) :: gridx,gridy
@@ -23,9 +34,12 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
   integer :: i,j, y,m,d
   integer :: yearday
   real :: s,lat,lon,hh,windmult 
-  logical :: isnan
+  logical :: isnan,hasproblem
 
+
+  !coefficient to artificially increase obtained momentum stress
   windmult=1.0
+
   if (any(cc.gt.1.0)) then
     cc=cc/100.0
   end if
@@ -38,19 +52,40 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
       lat = gridy(j)
     do i=1,size(cc,1)
       lon = gridx(i)
-      if (lon.gt.180) lon=lon-360
+      !we used to substract 360° from model longitude; now this is done with the "rotateforcing" init variable
+      !if (lon.gt.180) lon=lon-360
 
-      swr(i,j) = short_wave_radiation(yearday,hh,lon,lat,cc(i,j))
+      !short wave
+      if (heattype.ne.3) &
+        swr(i,j) = short_wave_radiation(yearday,hh,lon,lat,cc(i,j))
+
+      !long wave, evaporation, momentum
       call exchange_coefficients(windmult,u10(i,j),v10(i,j),t2(i,j),airp(i,j),sst(i,j),hum(i,j))
       call fluxes(u10(i,j),v10(i,j),t2(i,j),cc(i,j),sst(i,j),shf(i,j),tausx(i,j),tausy(i,j),evapoo(i,j) )
     
 #ifdef DEBUG
-      if ( isnan(shf(i,j)).or.isnan(tausx(i,j)).or.isnan(tausy(i,j))) then !.or.isinff(shf(i,j)).or.isinff(tausx(i,j)).or.isinff(tausy(i,j)) ) then
+      hasproblem=.false.
+      if ((isnan(shf(i,j))).or.(fp_class(shf(i,j))).eq.FOR_K_FP_POS_INF.or.(fp_class(shf(i,j))).eq.FOR_K_FP_NEG_INF) then
+        shf(i,j) = 0
+        hasproblem=.true.
+      end if
+      if ((isnan(tausx(i,j))).or.(fp_class(tausx(i,j))).eq.FOR_K_FP_POS_INF.or.(fp_class(tausx(i,j))).eq.FOR_K_FP_NEG_INF) then
+        tausx(i,j) = 0
+        hasproblem=.true.
+      end if
+      if ((isnan(tausy(i,j))).or.(fp_class(tausy(i,j))).eq.FOR_K_FP_POS_INF.or.(fp_class(tausy(i,j))).eq.FOR_K_FP_NEG_INF) then
+        tausy(i,j) = 0
+        hasproblem=.true.
+      end if
+      if ((isnan(evapoo(i,j))).or.(fp_class(evapoo(i,j))).eq.FOR_K_FP_POS_INF.or.(fp_class(evapoo(i,j))).eq.FOR_K_FP_NEG_INF) then
+        evapoo(i,j) = 0
+        hasproblem=.true.
+      end if
+      if (hasproblem.eq..true.) then
+         write(*,*) 'i,j,lon,lat=',i,j,lon,lat
+         write(*,*) 'u10m,v10m,t2,airp,cc,hum,sst=',u10(i,j),v10(i,j),t2(i,j),airp(i,j),cc(i,j),hum(i,j),sst(i,j)
          write(*,*) 'shf(i,j),tausx(i,j),tausy(i,j),swr(i,j) ',shf(i,j),tausx(i,j),tausy(i,j),swr(i,j)
          write(*,*) 'www,L,rho_air,qs,qa,ea,cd_heat,cd_mom ',www,L,rho_air,qs,qa,ea,cd_heat,cd_mom
-         if ((isnan(shf(i,j)))) shf(i,j) = 0
-         if ((isnan(tausx(i,j)))) tausx(i,j) = 0
-         if ((isnan(tausy(i,j)))) tausy(i,j) = 0
       end if
 #endif
     end do
@@ -93,7 +128,8 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
 !
 ! !INTERFACE:
    subroutine fluxes(u10,v10,airt,cc,sst,hf,taux,tauy,evappoint)
-!
+   use TIMCOM_GENERAL,ONLY:heattype
+
 ! !DESCRIPTION:
 !  The sum of the latent and sensible heat fluxes + longwave
 !  back-radiation is calculated and returned in \emph{hf} [$W/m^2$]. Also the
@@ -162,20 +198,23 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
 
    qe=L*evappoint			! latent
 
-   qh=cd_heat*cpa*rho_air*www*(tw-ta)			! sensible
+   qh=cd_heat*cpa*rho_air*www*(tw-ta)			! sensible heat flux, positive going up
 
    select case(back_radiation_method)			! back radiation
       case(clark)
-         qb=(1.0-.8*cc*cc)				&
-            *emiss*bolz*(tw_k**4)*(0.39-0.05*sqrt(ea/100.0))	&
+         qb=emiss*bolz*(tw_k**4)*(0.39-0.05*sqrt(ea/100.0))	&
             +4.0*emiss*bolz*(tw_k**3)*(tw-ta)
       case(hastenrath) ! qa in g(water)/kg(wet air)
-         qb=(1.0-.8*cc*cc)				&
-            *emiss*bolz*(tw_k**4)*(0.39-0.056*sqrt(1000*qa))		&
-            +4.0*emiss*bolz*(tw_k**3)*(tw-ta)
+         qb=emiss*bolz*(tw_k**4)*(0.39-0.056*sqrt(1000*qa))		&
+           +4.0*emiss*bolz*(tw_k**3)*(tw-ta)
       case default
    end select
+   if (heattype.ne.3) &
+     qb=(1.0-0.8*cc*cc)*qb
+     !when heattype=3, we don't want to remove the back-scattering from the outgoing longwave
+     !it will be read from disk, and removed later (in the fs routine)
 
+   !total outgoing heat:
    hf = qe+qh+qb ! for timcom, outgoing heat is positive going up
 
    tmp   = cd_mom*rho_air*www
@@ -354,11 +393,11 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
       short_wave_radiation  = qtot*(1-0.62*cc + .0019*sunbet)*(1.-albedo)
 !HB   endif
 
-#ifdef DEBUGue
-      if (isnanf(short_wave_radiation).or.isinff(short_wave_radiation)) then
-         write(99,*) 'short_wave_radiation,cc,qtot,albedo,jab,dza(jab),coszen,sundec,thsun,eqnx,eclips,sunbet ', &
+#ifdef DEBUG
+      if (isnan(short_wave_radiation).or.fp_class(short_wave_radiation).eq.FOR_K_FP_POS_INF.or.fp_class(short_wave_radiation).eq.FOR_K_FP_NEG_INF) then
+         write(*,*) 'short_wave_radiation,cc,qtot,albedo,jab,dza(jab),coszen,sundec,thsun,eqnx,eclips,sunbet ', &
              short_wave_radiation,cc,qtot,albedo,jab,dza(jab),coszen,sundec,thsun,eqnx,eclips,sunbet
-         write(99,*) 'www,L,rho_air,qs,qa,ea,cd_heat,cd_mom ',www,L,rho_air,qs,qa,ea,cd_heat,cd_mom
+         write(*,*) 'www,L,rho_air,qs,qa,ea,cd_heat,cd_mom ',www,L,rho_air,qs,qa,ea,cd_heat,cd_mom
          short_wave_radiation = 0.
       end if
 #endif
@@ -366,6 +405,19 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
    return
    end function short_wave_radiation
 !EOC
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 !-----------------------------------------------------------------------
 !Copyright (C) 2001 - Karsten Bolding & Hans Burchard
@@ -404,6 +456,7 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
 ! !USES:
 !   use meteo, only: cpa,KELVIN
 !   use meteo, only: L,rho_air,w,qs,qa,cd_heat,cd_mom
+  use TIMCOM_GENERAL,ONLY:heattype
    IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -444,9 +497,7 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
    real		:: ta,ta_k,tw,tw_k
 
    real		:: twet,rh
-#ifdef ECMWF_FRV
    real		:: d_tmp
-#endif
 !
 !  !TO DO:
 !
@@ -479,46 +530,27 @@ subroutine compute_fluxes(Tmjd,gridx,gridy,cc,u10,v10,airp,sst,t2,hum,shf,swr,ta
    es = es * 100.0 ! Conversion millibar --> Pascal
    qs = const06*es/(airp-0.377*es)
 
-!  FIXME
-!HB   rh = 90.0
-!  FIXME
-
-#ifdef ECMWF_FRV
+   if (heattype.ne.3) then
+      d_tmp = hum
 !     Piece of code taken from HAMSOM for calculating relative
 !     humidity from dew point temperature and dry air temperature.
-      d_tmp = hum
-! It must be sure that hum is dew point temperature in Kelvin in the next
-! line ...
-
-
-!ART changé ta_k en tw_k pour le calcul de es selon une correction observée dans GETM
+!     ARTHUR changé ta_k en tw_k pour le calcul de es selon une correction observée dans GETM
       ea  = 611.21*exp((18.729 - (min(d_tmp,300.)-273.15)/227.3)*       &
               (min(d_tmp,300.)-273.15)/(max(d_tmp,200.)-273.15+257.87))
       es  = 611.21*exp((18.729 - (min(tw_k,300.)-273.15)/227.3)*       &
               (min(tw_k,300.)-273.15)/(max(tw_k,200.)-273.15+257.87))
+      !correction for seawater following Kraus 1972
+      es = 0.98 * es
       rh = ea/es * 100.
-#endif
 
-!ART Remplacé ce qui suit comment é par ce qui suit après pour les mêmes raisons..
-!  if (rh .lt. 0.0) then
-!     ea = es - 67.*(ta-twet);
-!     x = (ta-twet)/(CONST06*L);
-!     ea = (es-cpa*airp*x)/(1+cpa*x);
-!     if(ea .lt. 0.0) ea = 0.0
-!     qa = CONST06*ea/(airp-0.377*ea);
-!  else
-!     qa = 0.01*rh*qs;
-!     ea = qa*airp/(const06 + 0.377*qa);
-!  end if
-
-   qa = CONST06*ea/(airp-0.377*ea);
-
-!ART fin des modifs
-
-
-
-
-
+      qa = CONST06*ea/(airp-0.377*ea);
+   else
+      qa=hum !hum actually comes from DewTemperature2m which itself actually containted specific humidity @ 10m
+      ea=qa*airp/(const06+0.377*qa) ! I inverted the formula from above linking qa and ea
+      es  = 611.21*exp((18.729 - (min(tw_k,300.)-273.15)/227.3)*       &
+              (min(tw_k,300.)-273.15)/(max(tw_k,200.)-273.15+257.87))
+      rh = ea/es * 100.      
+   end if
 
    tvirt = ta_k*(1+qa/const06)/(1+qa)
    rho_air = airp/(287.05*Tvirt)

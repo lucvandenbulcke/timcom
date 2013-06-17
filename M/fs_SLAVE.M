@@ -106,7 +106,7 @@ real :: seavol,rivervol,storet,stores
 
   ! ================================================================ !
   ! 0. DETERMINE NUDGING COEFFICIENTS (CURRENT MONTH AND FNEW, FOLD) !
-  ! ================================================================ ! 
+  ! ================================================================ !
   if (FL_FNEWFOLD_CALC.eq.1) then
     NLD=DAYS/30. ! NLD IS AN INTEGER
     FNEW=DAYS/30.-NLD
@@ -771,7 +771,11 @@ real :: seavol,rivervol,storet,stores
      call interfgetfield(localAirTemperature2m,modelmjd,tempT2M,space)
      call interfgetfield(localDewTemperature2m,modelmjd,tempDT2M,space)
      call interfgetfield(localAtmPressure,modelmjd,tempPMSL,space)
-     call interfgetfield(localCloudCoverage,modelmjd,tempCC,space)
+     if (heattype.ne.3) then
+       call interfgetfield(localCloudCoverage,modelmjd,tempCC,space)
+     else
+       tempCC=0.0
+     end if
      call compute_fluxes(modelmjd,xdeg(2:I1),ydeg(2:J1),tempCC,tempU10M,tempV10M,tempPMSL,T2(:,:,1),tempT2M,tempDT2M,qdot,qdot2,taux1,tauy1,evapo)
      !convert taux1 to the right unit and mask
      DO J=1,J2
@@ -789,6 +793,16 @@ real :: seavol,rivervol,storet,stores
       space=.false.
       call interfgetfield(localQup,modelmjd,QDOT,space)
       call interfgetfield(localQsolar,modelmjd,QDOT2,space)
+  end if
+  if (heattype.eq.3) then
+      space=.false.
+      !shortwave
+      call interfgetfield(localQsolar,modelmjd,QDOT2,space)
+      !longwave: emission, sensible and latent from qdot (from compute_fluxes), back-radiation from localQup (from disk)
+      call interfgetfield(localQup,modelmjd,tempCC,space) !tempCC now temporarily holds longwave back-radiation
+      qdot=qdot+tempCC ! qdot contains 3 contributions from bulk formulae, all positive upwards
+		       ! tempCC is the back radiation read from disk, follows the same convention
+		       !   but is a negative number as it actually goes down
   end if
   if (heattype.ge.0) then
      !actually add the heat, whether it comes from bulk formulae or fluxes read from disk
@@ -828,8 +842,7 @@ real :: seavol,rivervol,storet,stores
       space=.false.
       !overwrite the evaporation with values read from disk, need to be kg/m2/s
       call interfgetfield(localEvap,modelmjd,evapo,space)
-  elseif (salttype.eq.-1) then
-      evapo=0
+  ! elseif (salttype.eq.-1)  evapo=0  ! we will initialize evapo later, if salttype.eq.-1 AND raintype.eq.1, because in that case, rain must be substracted from it  ! 
   ! elseif (salttype.eq.1) then it is already calculated with the bulk formulae and stored in evapo
   end if
   if (raintype.eq.1) then
@@ -837,9 +850,13 @@ real :: seavol,rivervol,storet,stores
       !precipitation can only be read from disk, and should be in kg/m2/s
       call interfgetfield(localPrecipitation,modelmjd,rain,space)
       !remove precipitation from evaporation
-      evapo=evapo-rain  !qdot is actually precipitation here!
+      !write(*,*) "sizes=",size(evapo,1),size(evapo,2),size(rain,1),size(rain,2)
+      !write(*,*) "mean evapo,rain=",sum(evapo)/size(evapo,1)/size(evapo,2),sum(rain)/size(rain,1)/size(rain,2)
+      !write(*,*) "max  evapo,rain=",maxval(evapo),maxval(rain)
+      if (salttype.eq.-1) evapo=0.0   ! initialize evapo
+      evapo=evapo-rain
   end if
-  if (salttype.ge.0.or.rainttype.eq.1) then
+  if (salttype.ge.0.or.raintype.eq.1) then
       !CALL SalSURF(S1(:,:,1),modelmjd,dt,odz)
       CALL SalSURF(S2(:,:,1),modelmjd,dt,odz)
       !CALL SalSURF(SLF(:,:,1),modelmjd,dt,odz)
@@ -1211,7 +1228,7 @@ real :: seavol,rivervol,storet,stores
         SCR(I,J,2)=-(X(I,J+1)-X(I,J))*ODYV(J) ! CURRENT CORRECTION
       END DO   
     END DO
-    DO I=2,I1             
+    DO I=2,I1
       SCR(I,1,2)=0; SCR(I,J1,2)=0
     END DO
     DO J=1,J1
@@ -1222,7 +1239,7 @@ real :: seavol,rivervol,storet,stores
     END DO
     DO K=2,K1                             ! REMAINING LAYERS
       DO J=1,J1
-        DO I=2,I1 
+        DO I=2,I1
           V(I,J,K)=V(I,J,K)+SCR(I,J,2)*IV(I,J,K)
         END DO
       END DO

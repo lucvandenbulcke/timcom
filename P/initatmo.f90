@@ -13,9 +13,7 @@ use initfile
 write(*,*) "Loading atmospheric data specified in :",trim(atmosfile)
 bulk=.false.
 rotateforcing=360
-if (presentInitValue(atmosfile,'rotateforcing')) then
-  call getInitValue(atmosfile,'rotateforcing',rotateforcing)
-endif
+if (presentInitValue(atmosfile,'rotateforcing'))  call getInitValue(atmosfile,'rotateforcing',rotateforcing)
 
 windtype=-1
 if (presentInitValue(atmosfile,'wind')) then

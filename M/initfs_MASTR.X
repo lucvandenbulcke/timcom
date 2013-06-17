@@ -140,7 +140,7 @@ USE DENSITY_EOS_MASTR
           S2(I,J,K)=SCLI(I,J,K)
         END DO
       END DO
-    END DO 
+    END DO
 #endif
 
 ! step 2.5: assign tracer
@@ -156,7 +156,6 @@ USE DENSITY_EOS_MASTR
 
 ! step 3: assign wind shear stress
   bulk_formulae=.false.
-  hum_type=.true.
   if (windtype.ge.0.or.heattype.ge.0.or.raintype.eq.1.or.salttype.ge.0) then
     !create the "grid2D" variable which corresponds to this domain's grid
     localgrid2D%typex=parall
@@ -166,7 +165,7 @@ USE DENSITY_EOS_MASTR
     allocate(localgrid2d%x(imax,jmax),localgrid2d%y(imax,jmax),localgrid2d%mask(imax,jmax))
     do i=1,imax
       do j=1,jmax
-         localgrid2D%x(i,j)=xdeg(i+1)-rotateforcing
+         localgrid2D%x(i,j)=xdeg(i+1)+rotateforcing
          localgrid2D%y(i,j)=ydeg(j+1)
          localgrid2D%mask(i,j)=1
       end do
@@ -267,6 +266,35 @@ USE DENSITY_EOS_MASTR
     !write(*,*) "        FOR THIS DOMAIN, localQup%array(100,80,1)   = ",localQup%array(100,80,1)
   elseif (heattype.eq.3) then ! Qshort, Qlong read from file ; Qlatent, Qsensible computed (but no need for TCC)
     bulk_formulae=.true.
+    ! Qsolar
+    localQsolar%initfname="interpolated from another file"
+    localQsolar%scale=1
+    localQsolar%g2D=localgrid2D
+    localQsolar%initialised=.false.
+    localQsolar%index=1
+    localQsolar%key="Solar shortwave heat flux (downward +)"
+    allocate(localQsolar%day(size(shortwavedown%day)))
+    localQsolar%day=shortwavedown%day
+    kmax=size(shortwavedown%day)
+    allocate(localQsolar%array(imax,jmax,kmax))
+    ! Qup
+    localQup%initfname="longwave radiation interpolated from file, latent and sensible radiation computed"
+    localQup%scale=1
+    localQup%g2D=localgrid2D
+    localQup%initialised=.false.
+    localQup%index=1
+    localQup%key="Upward heat flux = Qlongwave + Qlatent + Qsensible (upward +)"
+    allocate(localQup%day(size(Qup%day)))
+    localQup%day=Qup%day
+    kmax=size(Qup%day)
+    ! interpolate Qsolar and Qup on the local domain grid
+    allocate(localQup%array(imax,jmax,kmax))
+    write(*,*) "Interpolating (in space) heat fluxes --> local grid (for all timesteps)"
+    do n=1,kmax
+      call interp_field2D(shortwavedown%g2D,shortwavedown%array(:,:,n),localQsolar%g2D,localQsolar%array(:,:,n))
+      call interp_field2D(Qup%g2D,Qup%array(:,:,n),localQup%g2D,localQup%array(:,:,n))
+    end do
+  else
     write(*,*) "The heat forcing TYPE is not set correctly in the atmospheric forcings init file ... SERIOUS PROBLEM!!!"
   end if
 
@@ -348,22 +376,25 @@ USE DENSITY_EOS_MASTR
     localDewTemperature2m%initialised=.false.
     localDewTemperature2m%index=1
     localDewTemperature2m%key="Dew point temperature at 2m"
+    if (heattype.eq.3) localDewTemperature2m%key="Specific humidity at 2m"
     localDewTemperature2m%model%imax=imax ; localDewTemperature2m%model%jmax=jmax
     allocate(localDewTemperature2m%day(size(DewTemperature2m%day)))
     localDewTemperature2m%day=DewTemperature2m%day
     kmax=size(DewTemperature2m%day)
     allocate(localDewTemperature2m%array(imax,jmax,kmax))
-    localCloudCoverage%initfname="interpolated from another file"
-    localCloudCoverage%scale=1
-    localCloudCoverage%g2D=localgrid2D
-    localCloudCoverage%initialised=.false.
-    localCloudCoverage%index=1
-    localCloudCoverage%key="Cloud Coverage"
-    localCloudCoverage%model%imax=imax ; localCloudCoverage%model%jmax=jmax
-    allocate(localCloudCoverage%day(size(CloudCoverage%day)))
-    localCloudCoverage%day=CloudCoverage%day
-    kmax=size(CloudCoverage%day)
-    allocate(localCloudCoverage%array(imax,jmax,kmax))
+    if (heattype.ne.3) then
+      localCloudCoverage%initfname="interpolated from another file"
+      localCloudCoverage%scale=1
+      localCloudCoverage%g2D=localgrid2D
+      localCloudCoverage%initialised=.false.
+      localCloudCoverage%index=1
+      localCloudCoverage%key="Cloud Coverage"
+      localCloudCoverage%model%imax=imax ; localCloudCoverage%model%jmax=jmax
+      allocate(localCloudCoverage%day(size(CloudCoverage%day)))
+      localCloudCoverage%day=CloudCoverage%day
+      kmax=size(CloudCoverage%day)
+      allocate(localCloudCoverage%array(imax,jmax,kmax))
+    end if
     localAtmPressure%initfname="interpolated from another file"
     localAtmPressure%scale=1
     localAtmPressure%g2D=localgrid2D
@@ -375,14 +406,17 @@ USE DENSITY_EOS_MASTR
     localAtmPressure%day=PresMSL%day
     kmax=size(PresMSL%day)
     allocate(localAtmPressure%array(imax,jmax,kmax))
-    write(*,*) "Interpolating (in space) wind speed, T2M, DT2M, CC and PresMSL --> local grid"
+
+    write(*,*) "Interpolating remaining atmospheric fields from original grid --> local grid"
     do n=1,kmax
       call interp_field2D(WindU10m%g2D,WindU10m%array(:,:,n),localWindU10m%g2D,localWindU10m%array(:,:,n))
       call interp_field2D(WindV10m%g2D,WindV10m%array(:,:,n),localWindV10m%g2D,localWindV10m%array(:,:,n))
       call interp_field2D(AirTemperature2m%g2D,AirTemperature2m%array(:,:,n),localAirTemperature2m%g2D,localAirTemperature2m%array(:,:,n))
-      call interp_field2D(DewTemperature2m%g2D,DewTemperature2m%array(:,:,n),localDewTemperature2m%g2D,localDewTemperature2m%array(:,:,n))
-      call interp_field2D(CloudCoverage%g2D,CloudCoverage%array(:,:,n),localCloudCoverage%g2D,localCloudCoverage%array(:,:,n))
       call interp_field2D(PresMSL%g2D,PresMSL%array(:,:,n),localAtmPressure%g2D,localAtmPressure%array(:,:,n))
+      call interp_field2D(DewTemperature2m%g2D,DewTemperature2m%array(:,:,n),localDewTemperature2m%g2D,localDewTemperature2m%array(:,:,n))
+      if (heattype.ne.3) then
+        call interp_field2D(CloudCoverage%g2D,CloudCoverage%array(:,:,n),localCloudCoverage%g2D,localCloudCoverage%array(:,:,n))
+      end if
     end do
     !allocate 6 temporary fields
     allocate(tempU10M(imax,jmax),STAT=lucstat(1))
@@ -640,7 +674,7 @@ USE DENSITY_EOS_MASTR
       END DO
     END DO
   ENDIF
-WRITE(FNO_LOG,*)'AROUT=',AROUT
+  WRITE(FNO_LOG,*)'AROUT=',AROUT
 ! step 8: particle tracking
   IF (FL_PMOVE_ON == 1) CALL PMOVE(TIMCOM_INIT) !GLOBAL, NPB, TAI  
 ! Write formatted run description and parameters

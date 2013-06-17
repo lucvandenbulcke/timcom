@@ -342,6 +342,7 @@ real :: seavol,rivervol,storet,stores
   !     A. CALCULATE RHO                                                            !
   !     B. CALCULATE FACE AVERAGED P @ BOTTOM OF EACH LAYER                         !
   !     C. CALCULATE VOLUME AVERAGED P (4TH-ORDER ACCURATE)                         !
+  !  3bis. ADD RIVERS                                                               !
   !  4. CALCULATE ALL INTERNAL FLUXES AND SUBSTITUTE INTO CONSERVATION LAWS         !
   !     A. HORIZONTAL PRESSURE GRADIENT, 4TH-ORDER-ACCURATE                         !
   !     B. VERTICAL FLUXES                                                          !
@@ -350,8 +351,8 @@ real :: seavol,rivervol,storet,stores
   !  5. MOMENTUM EQUATIONS & TRANSPORT EQUATIONS (TMP U2,V2,T2,S2,C2)               !
   !  6. OPEN BOUNDARY CONDITIONS                                                    !
   !  7. SURFACE EFFECTS                                                             !
-  !     A. HEAT FLUX                 B. WIND STRESS                                 !
-  !     B. EVAPORATION & PRECIPITATION (NO SALT SOURCES)                            !
+  !     A. HEAT FLUX     B. WIND STRESS                                             !
+  !     C. EVAPORATION & PRECIPITATION (NO SALT SOURCES)                            !
   !     D. SURFACE NUDGING                                                          !
   !  8. CLIMATOLOGCAL SPONGE LAYER RESTORING                                        !
   !  9. BOTTOM STRESS                                                               !
@@ -1040,7 +1041,11 @@ real :: seavol,rivervol,storet,stores
      call interfgetfield(localAirTemperature2m,modelmjd,tempT2M,space)
      call interfgetfield(localDewTemperature2m,modelmjd,tempDT2M,space)
      call interfgetfield(localAtmPressure,modelmjd,tempPMSL,space)
-     call interfgetfield(localCloudCoverage,modelmjd,tempCC,space)
+     if (heattype.ne.3) then
+       call interfgetfield(localCloudCoverage,modelmjd,tempCC,space)
+     else
+       tempCC=0.0
+     end if
      call compute_fluxes(modelmjd,xdeg(2:I1),ydeg(2:J1),tempCC,tempU10M,tempV10M,tempPMSL,T2(:,:,1),tempT2M,tempDT2M,qdot,qdot2,taux1,tauy1,evapo)
      !convert taux1 to the right unit and mask
      DO J=1,J2
@@ -1058,6 +1063,16 @@ real :: seavol,rivervol,storet,stores
       space=.false.
       call interfgetfield(localQup,modelmjd,QDOT,space)
       call interfgetfield(localQsolar,modelmjd,QDOT2,space)
+  end if
+  if (heattype.eq.3) then
+      space=.false.
+      !shortwave
+      call interfgetfield(localQsolar,modelmjd,QDOT2,space)
+      !longwave: emission, sensible and latent from qdot (from compute_fluxes), back-radiation from localQup (from disk)
+      call interfgetfield(localQup,modelmjd,tempCC,space) !tempCC now temporarily holds longwave back-radiation
+      qdot=qdot+tempCC ! qdot contains 3 contributions from bulk formulae, all positive upwards
+		       ! tempCC is the back radiation read from disk, follows the same convention
+		       !   but is a negative number as it actually goes down
   end if
   if (heattype.ge.0) then
      !actually add the heat, whether it comes from bulk formulae or fluxes read from disk
@@ -1097,8 +1112,7 @@ real :: seavol,rivervol,storet,stores
       space=.false.
       !overwrite the evaporation with values read from disk, need to be kg/m2/s
       call interfgetfield(localEvap,modelmjd,evapo,space)
-  elseif (salttype.eq.-1) then
-      evapo=0
+  ! elseif (salttype.eq.-1)  evapo=0  ! we will initialize evapo later, if salttype.eq.-1 AND raintype.eq.1, because in that case, rain must be substracted from it  ! 
   ! elseif (salttype.eq.1) then it is already calculated with the bulk formulae and stored in evapo
   end if
   if (raintype.eq.1) then
@@ -1109,9 +1123,10 @@ real :: seavol,rivervol,storet,stores
       !write(*,*) "sizes=",size(evapo,1),size(evapo,2),size(rain,1),size(rain,2)
       !write(*,*) "mean evapo,rain=",sum(evapo)/size(evapo,1)/size(evapo,2),sum(rain)/size(rain,1)/size(rain,2)
       !write(*,*) "max  evapo,rain=",maxval(evapo),maxval(rain)
+      if (salttype.eq.-1) evapo=0.0   ! initialize evapo
       evapo=evapo-rain
   end if
-  if (salttype.ge.0.or.rainttype.eq.1) then
+  if (salttype.ge.0.or.raintype.eq.1) then
       !CALL SalSURF(S1(:,:,1),modelmjd,dt,odz)
       CALL SalSURF(S2(:,:,1),modelmjd,dt,odz)
       !CALL SalSURF(SLF(:,:,1),modelmjd,dt,odz)
@@ -1424,7 +1439,6 @@ real :: seavol,rivervol,storet,stores
       END DO
     END DO
 
-
 #ifdef FLAG_FS
     DO K=K1,1,-1
       TEMP1=1./ODZ(K)
@@ -1502,7 +1516,7 @@ real :: seavol,rivervol,storet,stores
         V(I,J,1)=V(I,J,1)+SCR(I,J,2)          ! TOP LAYER
       END DO
     END DO
-    DO K=2,K1                                 ! REMAINING LAYERS
+    DO K=2,K1                             ! REMAINING LAYERS
       DO J=1,J1
         DO I=2,I1
           V(I,J,K)=V(I,J,K)+SCR(I,J,2)*IV(I,J,K)
@@ -1543,7 +1557,7 @@ real :: seavol,rivervol,storet,stores
      TEMP=OCS(J)*ODY(J)
      DO I=2,I1            !(I:CELL & EAST  FACE FOR U)
        DO K=KB(I,J),1,-1
-         TMP=1./ODZ(K)     
+         TMP=1./ODZ(K)
          W(I,J,K)=(W(I,J,K+1)+((U(I,J,K)-U(I-1,J,K))*ODX(J)&
                    +(CSV(J)*V(I,J,K)-CSV(J-1)*V(I,J-1,K))*TEMP)*TMP)
        END DO
@@ -1587,8 +1601,8 @@ real :: seavol,rivervol,storet,stores
          U2(I,J,K)=IN(I,J,K)*(U2(I,J,K) &
                   +O24*(12.*(TMP1*SCR(I-1,J,3)+TMP2*SCR(I,J,3))+TMP*SCR(I,J,1)))
        END DO
-       TMP1=IU(1,J,K)  
-       TMP2=IU(2,J,K) 
+       TMP1=IU(1,J,K) 
+       TMP2=IU(2,J,K)
        TMP=1 
        U2(2,J,K) =IN(2,J,K) *(U2(2,J,K)  &
                  +O24*(12.*(TMP1*SCR(1,J,3) +TMP2*SCR(2,J,3)) +TMP*SCR(2,J,1)))
@@ -1836,7 +1850,7 @@ real :: seavol,rivervol,storet,stores
           summ=summ+AREA*EPS
         END DO
       END DO
-      IF(FL_NUDGE_OP_T.GE.3)THEN
+      IF(FL_NUDGE_OP_S.GE.3)THEN
         if(A(K).EQ.0) then
           SUMM=0.
         else
