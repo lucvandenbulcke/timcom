@@ -255,7 +255,8 @@ real :: seavol,rivervol,storet,stores
       T1(riveri(k),riverj(k),1)=(seavol*T1(riveri(k),riverj(k),1) + (rivervol*riverT(k,month))) / (seavol+rivervol)
       S1(riveri(k),riverj(k),1)=(seavol*S1(riveri(k),riverj(k),1) + (rivervol*riverS(k,month))) / (seavol+rivervol)
    end if
-   write(*,*) "river: ",riverlist(k)," T,S: ",storet,stores," --> ",T2(riveri(k),riverj(k),1), S2(riveri(k),riverj(k),1)
+   IF ( (ITF_GENERAL .LT. TOPTS) .OR. (MOD(ITF_GENERAL,TOPTS) .EQ. 0) .OR. (ITFTO .LE. NITFTO) ) &
+     write(*,*) "river: ",riverlist(k)," T,S: ",storet,stores," --> ",T2(riveri(k),riverj(k),1), S2(riveri(k),riverj(k),1)
   end do
 
   ! ======================================================================== !

@@ -70,13 +70,16 @@ SLAVE: DO WHILE(.TRUE.)
          DAYS=ITF/DAODT
          N=int(DAYS/360.+.001)
          TMP=DAYS/360.
-       ! During year, N360 goes from 0 to 360
-         N360=int((TMP-N)*360.+.001)
-         NYR=N+1
+         ! Luc:	commented the following	3 lines, we now	use real days in years
+         ! During year, N360 goes from 0 to 360
+         ! N360=int((TMP-N)*360.+.001)
+         ! NYR=N+1
          NEXP=8
          DTS=DT/NEXP
          modelmjd=t0mjd+days
          call gregd2(modelmjd,year,month,day,hour,minut)
+         N360=mod(modelmjd-t0mjd,365) ! days from the start of simulation
+         NYR=(modelmjd-t0mjd)/365
 
          IF ( (ITF_GENERAL .LT. TOPTS) .OR. (MOD(ITF_GENERAL,TOPTS) .EQ. 0) .OR. (ITFTO .LE. NITFTO) ) THEN
            WRITE(*,'(A,i10,A,f10.3,A,f10.3)')"SLAVE timestep :: ", itf,", ",DAYS," days has been run -- mjd=",modelmjd
