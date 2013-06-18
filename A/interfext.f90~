@@ -185,7 +185,7 @@ contains
      call getInitValue(initfname,trim(key)//'gridX',str);
      call uload(trim(path)//str,temp1,f%g2D%valex) !ncep -> lon,lat = single array
      if (presentInitValue(initfname,trim(key)//'rotate_lon')) then
-        call getInitValue(initfname,trim(key)//'rotate_lon',rotate_lon)
+        call getInitValue(initfile,trim(key)//'rotate_lon',rotate_lon)
         temp1=temp1+rotate_lon
      endif
      call getInitValue(initfname,trim(key)//'gridY',str);

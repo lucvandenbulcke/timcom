@@ -27,6 +27,7 @@ use interfext, interfinit => init, interfgetfield => getfield
   TIMCOM_COND=0,TIMCOM_FORCE=1
 
 !GLOBAL VARIABLES FOR ATMOSPHERIC FORCING FIELDS
+real :: rotateforcing
 type(field2D) :: SSTfield,&
      shortwavedown,longwaveup,sensibleup,latentup,Qup, &
      MomentfluxX,MomentfluxY,Precip,EvapField,PresMSL, &

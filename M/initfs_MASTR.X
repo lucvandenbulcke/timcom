@@ -165,7 +165,7 @@ USE DENSITY_EOS_MASTR
     allocate(localgrid2d%x(imax,jmax),localgrid2d%y(imax,jmax),localgrid2d%mask(imax,jmax))
     do i=1,imax
       do j=1,jmax
-         localgrid2D%x(i,j)=xdeg(i+1)+rotateforcing
+         localgrid2D%x(i,j)=xdeg(i+1)
          localgrid2D%y(i,j)=ydeg(j+1)
          localgrid2D%mask(i,j)=1
       end do

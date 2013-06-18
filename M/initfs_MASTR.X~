@@ -1,40 +1,40 @@
-SUBROUTINE INITFS_SLAVE(I0_SLAVE,J0_SLAVE,K0_SLAVE)
-#include "namelist.in_SLAVE"
+SUBROUTINE INITFS_MASTR(I0_MASTR,J0_MASTR,K0_MASTR)
+#include "namelist.in_MASTR"
 ! ****************
 ! INITIALIZATION *
 ! ****************
 USE TIMCOM_GENERAL
-USE OCN_PARA_SLAVE
-USE WINDID_SLAVE
-USE GRID_VAR_SLAVE, ONLY: RINV,RINV1,DUM0,DUM1,DUM2,XX,H,X,S,AL,AB,AC,AR,AT,SRC,CL,CB,CC,CR,CT,IE
-USE GRID_VAR_SLAVE, ONLY: RHO,Mcrho,McTP,McS,McTPTP,McSTP,P0,PX,PY,U1,U2,V1,V2,S1,S2,T1,T2,P,ULF,VLF,SLF,TLF,EV,HV,F,TANPHI,SUMIN
-USE GRID_VAR_SLAVE, ONLY: U,V,W
-USE GRID_VAR_SLAVE, ONLY: PBAR,PVAR,XBAR,UCLI,VCLI,RMSV,SBAR,TBAR
-USE GRID_VAR_SLAVE, ONLY: Z,ODZ,ODZW
-USE GRID_VAR_SLAVE, ONLY: VGLO,UAVG,VAVG,SAVG,TAVG
-USE GRID_VAR_SLAVE, ONLY: A,XDEG,YV,YVDEG,YDEG,CS,OCS,DX,ODX,DY,ODY,CSV,OCSV,DXV,ODXV,DYV,ODYV
-USE GRID_VAR_SLAVE, ONLY: KB,IU0,IV0,IN,IU,IV,IW
-USE CLIMAT_SLAVE
-USE GRID_VAR_SLAVE, ONLY: TNUDGE,QAVG,WAVG,SCLI,TCLI,QDAVG,SDAVG,SSURF,TSURF,SSSP,SNSP,TSSP,TNSP
-USE CONTROL_SLAVE
-USE SCA_SLAVE
-USE GRID_VAR_SLAVE, ONLY: SCR
-USE GRID_VAR_SLAVE, ONLY:TAUX,TAUY
-USE GRID_VAR_SLAVE, ONLY: SXY,TXY,SXYCLI,TXYCLI
-USE GRID_VAR_SLAVE, ONLY: DMX,DMY,VBK,HBK,INFX,INFY
-USE GRID_VAR_SLAVE, ONLY: ADD,VAR_ALLOCATE_ADD
-USE GRID_VAR_SLAVE, ONLY: AROUT
-USE GRID_VAR_SLAVE, ONLY: nudge
-USE SLAVESPLT
-USE INPUT_SLAVE
-USE INIT_VAR_SLAVE
-USE RESTART_SLAVE
-USE PMOVE_SLAVE
-USE REALWINDS_SLAVE
+USE OCN_PARA_MASTR
+USE WINDID_MASTR
+USE GRID_VAR_MASTR, ONLY: RINV,RINV1,DUM0,DUM1,DUM2,XX,H,X,S,AL,AB,AC,AR,AT,SRC,CL,CB,CC,CR,CT,IE
+USE GRID_VAR_MASTR, ONLY: RHO,Mcrho,McTP,McS,McTPTP,McSTP,P0,PX,PY,U1,U2,V1,V2,S1,S2,T1,T2,P,ULF,VLF,SLF,TLF,EV,HV,F,TANPHI,SUMIN
+USE GRID_VAR_MASTR, ONLY: U,V,W
+USE GRID_VAR_MASTR, ONLY: PBAR,PVAR,XBAR,UCLI,VCLI,RMSV,SBAR,TBAR
+USE GRID_VAR_MASTR, ONLY: Z,ODZ,ODZW
+USE GRID_VAR_MASTR, ONLY: VGLO,UAVG,VAVG,SAVG,TAVG
+USE GRID_VAR_MASTR, ONLY: A,XDEG,YV,YVDEG,YDEG,CS,OCS,DX,ODX,DY,ODY,CSV,OCSV,DXV,ODXV,DYV,ODYV
+USE GRID_VAR_MASTR, ONLY: KB,IU0,IV0,IN,IU,IV,IW
+USE CLIMAT_MASTR
+USE GRID_VAR_MASTR, ONLY: TNUDGE,QAVG,WAVG,SCLI,TCLI,QDAVG,SDAVG,SSURF,TSURF,SSSP,SNSP,TSSP,TNSP
+USE CONTROL_MASTR
+USE SCA_MASTR
+USE GRID_VAR_MASTR, ONLY: SCR
+USE GRID_VAR_MASTR, ONLY:TAUX,TAUY
+USE GRID_VAR_MASTR, ONLY: SXY,TXY,SXYCLI,TXYCLI
+USE GRID_VAR_MASTR, ONLY: DMX,DMY,VBK,HBK,INFX,INFY
+USE GRID_VAR_MASTR, ONLY: ADD,VAR_ALLOCATE_ADD
+USE GRID_VAR_MASTR, ONLY: AROUT
+USE GRID_VAR_MASTR, ONLY: nudge
+USE MASTRSPLT
+USE INPUT_MASTR
+USE INIT_VAR_MASTR
+USE RESTART_MASTR
+USE PMOVE_MASTR
+USE REALWINDS_MASTR
 #ifdef FLAG_TRACER
-USE GRID_VAR_SLAVE, ONLY: C1,C2,CLF
+USE GRID_VAR_MASTR, ONLY: C1,C2,CLF
 #endif
-USE GRID_VAR_SLAVE, ONLY:       &
+USE GRID_VAR_MASTR, ONLY:       &
     VAR_SPECIFY_OCN_PARA,       &
     VAR_ALLOCATE_B,             &
     VAR_ALLOCATE_CGRID,         &
@@ -49,18 +49,18 @@ USE GRID_VAR_SLAVE, ONLY:       &
     VAR_ALLOCATE_SCRATCH_MAIN,  &
     VAR_ALLOCATE_WINDMX_MAIN,   &
     VAR_ALLOCATE_XYMEANS_MAIN,   &
-    VAR_ALLOCATE_SLAVE, &
+    VAR_ALLOCATE_MASTR, &
     calc_absorption_rate
 
 use grids
 use initfile
 use ufileformat
-USE DENSITY_EOS_SLAVE
+USE DENSITY_EOS_MASTR
 
   integer :: imax,jmax,kmax,lucstat(6)
 
   REAL ZC, ZD, TMP3, TMP4 !NELSON, PLEASE PUT THIS DECLARATION IN A PROPER PLACE
-  INTEGER :: I0_SLAVE,J0_SLAVE,K0_SLAVE
+  INTEGER :: I0_MASTR,J0_MASTR,K0_MASTR
 
   character(64) :: key
   real, pointer :: temparray(:)
@@ -71,14 +71,14 @@ USE DENSITY_EOS_SLAVE
   integer :: icsmN
 
   print *,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-  print *, "initialize the FS for SLAVE domain"
+  print *, "initialize the FS for MASTR domain"
   WRITE(FNO_LOG,*),"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
-  WRITE(FNO_LOG,*),"initialize the FS for SLAVE domain"
+  WRITE(FNO_LOG,*),"initialize the FS for MASTR domain"
 
-  I0=I0_SLAVE
-  J0=J0_SLAVE
-  K0=K0_SLAVE
-  
+  I0=I0_MASTR
+  J0=J0_MASTR
+  K0=K0_MASTR
+
   CALL READ_INPUT_PARAMETERS
 
   CALL VAR_SPECIFY_OCN_PARA
@@ -95,10 +95,10 @@ USE DENSITY_EOS_SLAVE
   CALL VAR_ALLOCATE_SCRATCH_MAIN
   CALL VAR_ALLOCATE_WINDMX_MAIN
   CALL VAR_ALLOCATE_XYMEANS_MAIN
-  CALL VAR_ALLOCATE_SLAVE
-
-  CALL VAR_ALLOCATE_SLAVESPLT
+  CALL VAR_ALLOCATE_MASTRSPLT
   CALL VAR_ALLOCATE_ADD
+
+  CALL VAR_ALLOCATE_MASTR
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! 1. read input files: namelist files & initial files ! 
@@ -106,6 +106,7 @@ USE DENSITY_EOS_SLAVE
 ! 3. assign wind shear stress                         !
 ! 4. specify surface evaporation and precipitation    !
 ! 5. specify horizontal and vertical viscosity        !
+!    inclusive case-dependant special points          !
 ! 6. mask to eliminate biharmonic filter near shore   !
 ! 7. particle tracking, tracer, pmove                 !
 ! 8bis. compute absorption coefficients               !
@@ -164,7 +165,7 @@ USE DENSITY_EOS_SLAVE
     allocate(localgrid2d%x(imax,jmax),localgrid2d%y(imax,jmax),localgrid2d%mask(imax,jmax))
     do i=1,imax
       do j=1,jmax
-         localgrid2D%x(i,j)=xdeg(i+1)
+         localgrid2D%x(i,j)=xdeg(i+1)+rotateforcing
          localgrid2D%y(i,j)=ydeg(j+1)
          localgrid2D%mask(i,j)=1
       end do
@@ -261,7 +262,7 @@ USE DENSITY_EOS_SLAVE
       call interp_field2D(shortwavedown%g2D,shortwavedown%array(:,:,n),localQsolar%g2D,localQsolar%array(:,:,n))
       call interp_field2D(Qup%g2D,Qup%array(:,:,n),localQup%g2D,localQup%array(:,:,n))
     end do
-    !write(*,*) "        FOR THIS DOMAIN, localQsolar%array(100,80,1)   = ",localQsolar%array(100,80,3)
+    !write(*,*) "        FOR THIS DOMAIN, localQsolar%array(100,80,1)   = ",localQsolar%array(100,80,1)
     !write(*,*) "        FOR THIS DOMAIN, localQup%array(100,80,1)   = ",localQup%array(100,80,1)
   elseif (heattype.eq.3) then ! Qshort, Qlong read from file ; Qlatent, Qsensible computed (but no need for TCC)
     bulk_formulae=.true.
@@ -468,6 +469,7 @@ USE DENSITY_EOS_SLAVE
         END DO
       END DO
       ! CHECK: THE FUNCTION OF THIS PART
+! Yu-Chiao 10192011
 !      IF ((M == 1) .AND. (FL_EVAP1 == 1)) THEN
       IF (M==1) THEN
         DO J=1,J2
@@ -480,6 +482,7 @@ USE DENSITY_EOS_SLAVE
       END IF       
     END DO
     ! CHECK: THE FUNCTION OF THIS PART
+! Yu-Chiao 10192011
 !    IF (FL_EVAP1 == 1) EVAP=EVAP1      
     DO J=1,J2
       DO I=1,I2
@@ -501,6 +504,48 @@ USE DENSITY_EOS_SLAVE
   DMX=DM0(1:i1,1:j0,1:k1)
   DMY=DM0(1:i0,1:j1,1:k1)
   ! END IF 
+  
+  ! CASE DEPENDENT TREATMENT
+  IF (TRIM(CASE_NAME) == 'GLOBAL') THEN
+    ! increase mixing near equator and in high latitudes
+    ! big northern latitude dissipation fixes initialization data problem
+    ! Increasing diffusivity where KB(I,J)=1 is now superfluous, because
+    ! KB > 1 except over land to allow baroclinic coastal ventillation
+    ! equatorial damping parameterizes strong instabilities and augments
+    ! Ri-based vertical mixing
+    DO K=1,K1
+      DO J=1,J1
+        TMP=5.E7*(EXP(-.01*(J-J2)**2))&      ! far north
+           +1.E7*(EXP(-.001*(J-J0/2-1)**2))& ! equatorial
+           +5.E7*(EXP(-.01*(2-J )**2))       ! far south
+        DO I=1,I1
+          ! isolated bad points
+          TEMP=TMP+5.E7*EXP(-.001*((I-148)**2+(J-59)**2))  &
+                  +5.E7*EXP(-.001*((I-97)**2+(J-27)**2))   &
+                  +2.E8*EXP(-.001*((I-21)**2+(J-32)**2))   &
+                  +2.E8*EXP(-.001*((I-54)**2+(J-33)**2))   &
+                  +2.E8*EXP(-.001*((I-148)**2+(J-58)**2))  &
+                  +5.E8*EXP(-.0001*((I-180)**2+(J-34)**2)) &
+                  +5.E8*EXP(-.0001*((I-2)**2+(J-35)**2))
+          DMX(I,J,K)=DMX(I,J,K)+TEMP
+          DMY(I,J,K)=DMY(I,J,K)+TEMP
+        END DO
+      END DO
+    END DO
+  END IF
+  IF (TRIM(CASE_NAME) == 'MEDINA') THEN
+    ! increase mixing around "bad" points
+    DO J=1,J1
+      DO I=1,I1
+        ! isolated bad point
+        TEMP=2.E8*EXP(-.001*((I-256)**2+(J-53)**2))
+        do k=1,k1
+          DMX(I,J,K)=DMX(I,J,K)+TEMP
+          DMY(I,J,K)=DMY(I,J,K)+TEMP
+        end do
+      END DO
+    END DO
+  END IF
 
   IF (FL_TURB_H == 2) THEN
   ! big coastal lateral mixing
@@ -599,7 +644,6 @@ USE DENSITY_EOS_SLAVE
       END DO
     END DO
   END IF   
-
 ! step 7: calculate AROUT for to avoid incompressibility error
   AROUT=0.
   IF(FL_INFL_W.GE.3)THEN 
@@ -634,11 +678,12 @@ USE DENSITY_EOS_SLAVE
 ! step 8: particle tracking
   IF (FL_PMOVE_ON == 1) CALL PMOVE(TIMCOM_INIT) !GLOBAL, NPB, TAI  
 ! Write formatted run description and parameters
-!  WRITE(FNO_LOG,1) 'SLAVE',DSCRIB,MXIT,I0,J0,K0,KTRM,DT,FLTW,G,ORZMX,DRAG
+! Yu-Chiao 10192011
+!  WRITE(FNO_LOG,1) 'MASTR',DSCRIB,MXIT,I0,J0,K0,KTRM,DT,FLTW,G,ORZMX,DRAG
 ! 1  FORMAT('CASE ',A5,' (',A63,')'/'----------'/&
 !       ' MXIT    I0    J0   K0   KTRM'/1I7,4I5//&
 !       2X,'DT',8X,'FLTW',6X,'G',6X,'ORZMX',6X,'DRAG'/1P,5(1X,E9.2))
-  WRITE(FNO_LOG,1) 'SLAVE',DSCRIB,MXIT,I0,J0,K0,DT,FLTW,G,ORZMX,DRAG
+  WRITE(FNO_LOG,1) 'MASTR',DSCRIB,MXIT,I0,J0,K0,DT,FLTW,G,ORZMX,DRAG
  1  FORMAT('CASE ',A5,' (',A63,')'/'----------'/&
        ' MXIT    I0    J0   K0   '/1I7,3I5//&
        2X,'DT',8X,'FLTW',6X,'G',6X,'ORZMX',6X,'DRAG'/1P,5(1X,E9.2))
@@ -682,10 +727,10 @@ USE DENSITY_EOS_SLAVE
     IF (RESTARTSIG .NE. 0) THEN
       CALL RD_RESTART
       WRITE(*,92) ITF,DAYS
-      N=DAYS*DAODT+.5
-      IF (N /= ITF) THEN
-        WRITE(*,93) ITF,N
-        ITF=N
+      I=DAYS*DAODT+.5
+      IF (I /= ITF) THEN
+        WRITE(*,93) ITF,I
+        ITF=I
       END IF
     END IF
 #else
@@ -765,20 +810,28 @@ USE DENSITY_EOS_SLAVE
       END IF
       WRITE(*,90) ITF,DAYS,NSOMBO
       WRITE(FNO_LOG,90) ITF,DAYS,NSOMBO
-   90 FORMAT(/"Restart data read for SLAVE's ITF ",I7,", day ",F8.2,", NSOMBO:",12I3)
+   90 FORMAT(/"Restart data read for MASTR's ITF ",I7,", day ",F8.2,", NSOMBO:",12I3)
     END IF RESTART_CONDITION 
+! Yu-Chiao 10152011
 !  END IF
 #endif
 #endif
-   92 FORMAT("Restart data read for SLAVE's ITF ",I6,', day ',F8.2)
-   93 FORMAT(/'SLAVE ITF # changed from',I7,' to',I7,' at restart to reflect DT change')
+ 92   FORMAT("Restart data read for MASTR's ITF ",I6,", day ",F8.2)
+ 93   FORMAT(/'MASTR ITF # changed from',I7,' to',I7,' at restart to reflect DT change')
+
+  IF (ITF.GE.MXIT) THEN
+    WRITE(*,*)"INITFS_MASTR: ITF ",ITF, ">= MAX TIMESTEPS", MXIT
+    WRITE(*,*)"I'd be stop better!"
+    STOPSIG=TIMCOM_FINISH
+    CALL TIMCOM_STOPSIG_SIGNAL
+  END IF
 
 !step 10. check alternative IC
 if (icSIG.eq.1) then
   ! load from icfile
   write(mstring,'(i3.3)')member
-  write(*,*) "Now loading IC from file: ",trim(adjustl(icfile)),'/SLAVE'//mstring//'.nc, variables : T S U V P0'
-  tempstring=trim(icfile)//'/SLAVE'//mstring//'.nc#T'
+  write(*,*) "Now loading IC from file: ",trim(adjustl(icfile)),'/MASTR'//mstring//'.nc, variables : T S U V P0'
+  tempstring=trim(icfile)//'/MASTR'//mstring//'.nc#T'
   call uload(tempstring,tempfield3D)
   if (size(tempfield3D,1).eq.I0.and.size(tempfield3D,2).eq.J0.and.size(tempfield3D,3).eq.K1) then
     T1=tempfield3D
@@ -790,7 +843,7 @@ if (icSIG.eq.1) then
     stopsig=TIMCOM_FINISH
     call TIMCOM_STOPSIG_SIGNAL
   end if
-  tempstring=trim(icfile)//'/SLAVE'//mstring//'.nc#S'
+  tempstring=trim(icfile)//'/MASTR'//mstring//'.nc#S'
   call uload(tempstring,tempfield3D)
   if (size(tempfield3D,1).eq.I0.and.size(tempfield3D,2).eq.J0.and.size(tempfield3D,3).eq.K1) then
     S1=tempfield3D
@@ -802,7 +855,7 @@ if (icSIG.eq.1) then
     stopsig=TIMCOM_FINISH
     call TIMCOM_STOPSIG_SIGNAL
   end if
-  tempstring=trim(icfile)//'/SLAVE'//mstring//'.nc#U'
+  tempstring=trim(icfile)//'/MASTR'//mstring//'.nc#U'
   call uload(tempstring,tempfield3D)
   if (size(tempfield3D,1).eq.I0.and.size(tempfield3D,2).eq.J0.and.size(tempfield3D,3).eq.K1) then
     U1=tempfield3D
@@ -814,7 +867,7 @@ if (icSIG.eq.1) then
     stopsig=TIMCOM_FINISH
     call TIMCOM_STOPSIG_SIGNAL
   end if
-  tempstring=trim(icfile)//'/SLAVE'//mstring//'.nc#V'
+  tempstring=trim(icfile)//'/MASTR'//mstring//'.nc#V'
   call uload(tempstring,tempfield3D)
   if (size(tempfield3D,1).eq.I0.and.size(tempfield3D,2).eq.J0.and.size(tempfield3D,3).eq.K1) then
     V1=tempfield3D
@@ -826,11 +879,11 @@ if (icSIG.eq.1) then
     stopsig=TIMCOM_FINISH
     call TIMCOM_STOPSIG_SIGNAL
   end if
-  tempstring=trim(icfile)//'/SLAVE'//mstring//'.nc#P0'
+  tempstring=trim(icfile)//'/MASTR'//mstring//'.nc#P0'
   call uload(tempstring,tempfield2D)
   if (size(tempfield2D,1).eq.I0.and.size(tempfield2D,2).eq.J0) then
     !P0=tempfield2D*100.0*G      !loading SSH into P0
-    !P=tempfield2D                !this works but we usually don't have P
+    !P=tempfield3D                !this works but we usually don't have P
     P0=tempfield2D
     deallocate(tempfield2D)
   else
@@ -890,9 +943,9 @@ end if
 !step 11: initialize nudging
   nudge=1
 
-  print *,"End of initfs for SLAVE domain"
+  print *,"End of initfs for MASTR domain"
   print *,">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-  WRITE(FNO_LOG,*),"End of initfs for SLAVE domain"
+  WRITE(FNO_LOG,*),"End of initfs for MASTR domain"
   WRITE(FNO_LOG,*),">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 
 CONTAINS
@@ -900,4 +953,4 @@ CONTAINS
   INCLUDE './realwind.f90'
   INCLUDE './pmove.f90'
 
-END SUBROUTINE INITFS_SLAVE
+END SUBROUTINE INITFS_MASTR
