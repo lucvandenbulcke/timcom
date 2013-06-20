@@ -55,7 +55,7 @@ TMP=DT*ODZ(1)/2.5E4
 	      !add QDOT to T
 	      DO J=1,J2
 	      DO I=1,I2
-	        T(I+1,J+1)=T(I+1,J+1) - (TMP*QDOT(i,j)) ! substract because heat is going OUT
+	        T(I+1,J+1)=T(I+1,J+1) - (TMP*QDOT(i,j)*IN(i,j,1)) ! substract because heat is going OUT
 	      END DO
 	      END DO
 	
@@ -77,7 +77,7 @@ DO K=1,k1
   TMP=DT*ODZ(k)/2.5E4 ! unit conversation
   DO I=1,I2
     do J=1,J2
-      T(I+1,J+1,K)=T(I+1,J+1,K) + (TMP*QDOT2(i,j)*absorption(k)) ! add because heat is going IN
+      T(I+1,J+1,K)=T(I+1,J+1,K) + (TMP*QDOT2(i,j)*absorption(k)*IN(i,j,k)) ! add because heat is going IN
     end do
   END DO
 END DO
@@ -130,6 +130,7 @@ SUBROUTINE WIND(U,V,DAYS,DT,ODZ)
 use CLIMAT_MZONE,ONLY:FNEW,FOLD,NEW,NLD
 USE TIMCOM_GENERAL,ONLY:windtype
 use interfext, interfinit => init, interfgetfield => getfield
+USE GRID_VAR_GLOBAL,ONLY:iu,iv
 REAL,DIMENSION(I0,J0)::U,V
 REAL,DIMENSION(*),INTENT(IN)::ODZ
 REAL::DT,DAYS,TMP
@@ -152,8 +153,8 @@ if (windtype.eq.-1) then  !traditional timcom climatology
 else ! when using windype=0 or 1, taux1 is already at the right time (thus only 1 layer)
       DO J=2,J1
         DO I=2,I1
-          U(I,J)=U(I,J)+TMP*TAUX1(I-1,J-1)
-          V(I,J)=V(I,J)+TMP*TAUY1(I-1,J-1)
+          U(I,J)=U(I,J)+TMP*TAUX1(I-1,J-1)*iu(i,j,1)
+          V(I,J)=V(I,J)+TMP*TAUY1(I-1,J-1)*iv(i,j,1)
         END DO
       END DO
 endif

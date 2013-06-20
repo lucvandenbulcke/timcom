@@ -273,6 +273,7 @@ USE DENSITY_EOS_MASTR
     localQsolar%initialised=.false.
     localQsolar%index=1
     localQsolar%key="Solar shortwave heat flux (downward +)"
+    localQsolar%model%imax=imax ; localQsolar%model%jmax=jmax
     allocate(localQsolar%day(size(shortwavedown%day)))
     localQsolar%day=shortwavedown%day
     kmax=size(shortwavedown%day)
@@ -283,7 +284,8 @@ USE DENSITY_EOS_MASTR
     localQup%g2D=localgrid2D
     localQup%initialised=.false.
     localQup%index=1
-    localQup%key="Upward heat flux = Qlongwave + Qlatent + Qsensible (upward +)"
+    localQup%key="Longwave back-radiation flux (positive downward)"
+    localQup%model%imax=imax; localQup%model%jmax=jmax
     allocate(localQup%day(size(Qup%day)))
     localQup%day=Qup%day
     kmax=size(Qup%day)
@@ -306,6 +308,7 @@ USE DENSITY_EOS_MASTR
     localPrecipitation%initialised=.false.
     localPrecipitation%index=1
     localPrecipitation%key="Precipitation [kg/m2/s]"
+    localPrecipitation%model%imax=imax; localPrecipitation%model%jmax=jmax
     kmax=size(Precip%day)
     allocate(localPrecipitation%day(kmax))
     localPrecipitation%day=Precip%day
