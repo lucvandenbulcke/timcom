@@ -65,8 +65,8 @@ MASTR: DO WHILE(.TRUE.)
          DTS=DT/NEXP
          modelmjd=t0mjd+days
          call gregd2(modelmjd,year,month,day,hour,minut)
-         N360=mod(modelmjd-t0mjd,365) ! days from the start of simulation
-         NYR=(modelmjd-t0mjd)/365
+         N360=mod(int(modelmjd-t0mjd),365) ! days from the start of simulation
+         NYR=int(modelmjd-t0mjd)/365
 
          IF ( (ITF_GENERAL .LT. TOPTS) .OR. (MOD(ITF_GENERAL,TOPTS) .EQ. 0) .OR. (ITFTO .LE. NITFTO) ) THEN
            WRITE(*,'(A,i10,A,f10.3,A,f10.3)')"MASTR timestep :: ", itf,", ",DAYS," days has been run -- mjd=",modelmjd

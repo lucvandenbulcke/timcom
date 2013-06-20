@@ -4,7 +4,6 @@ ACODE="grids.f90 \
        date.f90 \
        ufileformat.f90 \
        regreg.f90 \
-       getm_meteo.f90 \
        initfile.f90 \
        interfext.f90 "
 

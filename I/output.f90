@@ -22,11 +22,15 @@ SUBROUTINE SNAPSHOT_OUTPUT(SIG)
           CALL TIMCOM_NC_OUTPUT_TYPE1(FILENAME)
           WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_T2_",NN,".nc"
           CALL TIMCOM_NC_OUTPUT_TYPE2(FILENAME)
+          WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_fluxes_",NN,".nc"
+          CALL TIMCOM_NC_OUTPUT_FLUXES(FILENAME)
         ELSEIF ( ISAV > 0 ) THEN
           WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_T1_",NN,"-00000.nc"
           CALL TIMCOM_NC_OUTPUT_TYPE1(FILENAME)
           WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_T2_",NN,"-00000.nc"
           CALL TIMCOM_NC_OUTPUT_TYPE2(FILENAME)
+          WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_fluxes_",NN,"-00000.nc"
+          CALL TIMCOM_NC_OUTPUT_FLUXES(FILENAME)
         ELSE
           RETURN
         ENDIF
@@ -35,6 +39,8 @@ SUBROUTINE SNAPSHOT_OUTPUT(SIG)
         CALL TIMCOM_NC_OUTPUT_TYPE1(FILENAME)
         WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A,i5.5,A)")TRIM(DIR),"member",member,"_T2_",NN,"-",MM,".nc"
         CALL TIMCOM_NC_OUTPUT_TYPE2(FILENAME)
+        WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A,i5.5,A)")TRIM(DIR),"member",member,"_fluxes_",NN,"-",MM,".nc"
+        CALL TIMCOM_NC_OUTPUT_FLUXES(FILENAME)
       ENDIF
     ENDIF
   CASE(1)
@@ -46,11 +52,15 @@ SUBROUTINE SNAPSHOT_OUTPUT(SIG)
         CALL TIMCOM_NC_OUTPUT_TYPE1(FILENAME)
         WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_T2_",NN,".nc"
         CALL TIMCOM_NC_OUTPUT_TYPE2(FILENAME)
+        WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_fluxes_",NN,".nc"
+        CALL TIMCOM_NC_OUTPUT_FLUXES(FILENAME)
       ELSEIF ( ISAV > 0 ) THEN
         WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_T1_",NN,"-00000.nc"
         CALL TIMCOM_NC_OUTPUT_TYPE1(FILENAME)
         WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_T2_",NN,"-00000.nc"
         CALL TIMCOM_NC_OUTPUT_TYPE2(FILENAME)
+        WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A)")TRIM(DIR),"member",member,"_fluxes_",NN,"-00000.nc"
+        CALL TIMCOM_NC_OUTPUT_FLUXES(FILENAME)
       ELSE
         RETURN
       ENDIF
@@ -59,6 +69,8 @@ SUBROUTINE SNAPSHOT_OUTPUT(SIG)
       CALL TIMCOM_NC_OUTPUT_TYPE1(FILENAME)
       WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A,i5.5,A)")TRIM(DIR),"member",member,"_T2_",NN,"-",MM,".nc"
       CALL TIMCOM_NC_OUTPUT_TYPE2(FILENAME)
+      WRITE(FILENAME,"(A,A,i3.3,A,i5.5,A,i5.5,A)")TRIM(DIR),"member",member,"_fluxes_",NN,"-",MM,".nc"
+      CALL TIMCOM_NC_OUTPUT_FLUXES(FILENAME)
     ENDIF
   CASE DEFAULT
       RETURN

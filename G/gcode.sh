@@ -116,6 +116,8 @@ input_code_generate() {
   echo "call getInitValue(tempname,'PVAR_OUTPUT',PVAR_OUTPUT)" >> $FILE
   echo "call getInitValue(tempname,'VAR_I0J0K0_OUTPUT',VAR_I0J0K0_OUTPUT)" >> $FILE
   echo "call getInitValue(tempname,'WVAR_OUTPUT',WVAR_OUTPUT)" >> $FILE
+  echo "if (presentInitValue(tempname,'VAR_FLUXES_OUTPUT')) &" >> $FILE
+  echo "  call getInitValue(tempname,'VAR_FLUXES_OUTPUT',VAR_FLUXES_OUTPUT)" >> $FILE
   echo "call getInitValue(tempname,'SCRNOUT',SCRNOUT)" >> $FILE
   echo "call getInitValue(tempname,'CPSAV',CPSAV)" >> $FILE
   echo "call getInitValue(tempname,'ATMOSFILE',ATMOSFILE)" >> $FILE

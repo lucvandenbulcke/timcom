@@ -8,6 +8,7 @@ USE GRID_VAR_MZONE, ONLY: KB,IU0,IV0,IN,IU,IV,IW
 USE GRID_VAR_MZONE, ONLY: U,V,W
 USE GRID_VAR_MZONE, ONLY: SCR
 USE GRID_VAR_MZONE, ONLY: Z,ODZ,ODZW
+USE GRID_VAR_MZONE, ONLY: qdot,qdot2,taux1,tauy1,evapo,tempCC
 use NCIO
 
 #ifdef FLAG_TRACER
@@ -103,6 +104,24 @@ SUBROUTINE TIMCOM_NC_OUTPUT_TYPE2(FN)
 
   CALL NC_FILECLOSE(NNCID)
 END SUBROUTINE TIMCOM_NC_OUTPUT_TYPE2
+
+
+SUBROUTINE TIMCOM_NC_OUTPUT_FLUXES(FN)
+  implicit none
+  CHARACTER(LEN=*) :: FN 
+  CHARACTER(256) :: FNnc
+
+  IF ( .NOT. VAR_FLUXES_OUTPUT ) RETURN
+  IF ( .NOT. bulk) RETURN
+  FNnc=trim(FN)//'#lwup' ;  call usave(FNnc,qdot,9999.)
+  FNnc=trim(FN)//'#swdn' ;  call usave(FNnc,qdot2,9999.)
+  FNnc=trim(FN)//'#taux' ;  call usave(FNnc,taux1,9999.) ! taux1 already converted to timcom units
+  FNnc=trim(FN)//'#tauy' ;  call usave(FNnc,tauy1,9999.) ! tauy1 already converted to timcom units       
+  if (heattype.eq.3) &
+    FNnc=trim(FN)//'#back_rad' ; call usave(FNnc,tempCC,9999.); ! this contains back-radiation read from disk
+
+END SUBROUTINE TIMCOM_NC_OUTPUT_FLUXES
+
 
 subroutine uv_pres_temp_sal_wr(FILE_NAME)
 
